@@ -3,7 +3,7 @@ import nltk
 import gensim
 
 
-class Word2Vec():
+class Word2Vec:
     def __init__(self):
         # Load Google's pre-trained Word2Vec model.
         self.model = gensim.models.KeyedVectors.load_word2vec_format('./GoogleNews-vectors-negative300.bin',
@@ -17,8 +17,9 @@ class Word2Vec():
             return self.model.word_vec(word)
 
 
-class Data():
+class Data:
     def __init__(self, word2vec, max_len=0):
+        self.data_size = None
         self.s1s, self.s2s, self.labels, self.features = [], [], [], []
         self.index, self.max_len, self.word2vec = 0, max_len, word2vec
 
@@ -35,7 +36,7 @@ class Data():
         self.index = 0
 
     def next(self):
-        if (self.is_available()):
+        if self.is_available():
             self.index += 1
             return self.data[self.index - 1]
         else:
@@ -73,7 +74,6 @@ class MSRP(Data):
     def open_file(self, mode, parsing_method="normal"):
         with open("./MSRP_Corpus/msr_paraphrase_" + mode + ".txt", "r", encoding="utf-8") as f:
             f.readline()
-
             for line in f:
                 items = line[:-1].split("\t")
                 label = int(items[0])
@@ -113,10 +113,8 @@ class WikiQA(Data):
     def open_file(self, mode):
         with open("./WikiQA_Corpus/WikiQA-" + mode + ".txt", "r", encoding="utf-8") as f:
             stopwords = nltk.corpus.stopwords.words("english")
-
             for line in f:
                 items = line[:-1].split("\t")
-
                 s1 = items[0].lower().split()
                 # truncate answers to 40 tokens.
                 s2 = items[1].lower().split()[:40]

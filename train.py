@@ -1,15 +1,16 @@
-import tensorflow as tf
-import numpy as np
 import sys
 
-from preprocess import Word2Vec, MSRP, WikiQA
-from ABCNN import ABCNN
-from utils import build_path
+import numpy as np
+import tensorflow as tf
 from sklearn import linear_model, svm
 from sklearn.externals import joblib
 
+from ABCNN import ABCNN
+from preprocess import Word2Vec, MSRP, WikiQA
+from utils import build_path
 
-def train(lr, w, l2_reg, epoch, batch_size, model_type, num_layers, data_type, word2vec, num_classes=2):
+
+def train(lr, width, l2_reg, epoch, batch_size, model_type, num_layers, data_type, word2vec, num_classes=2):
     if data_type == "WikiQA":
         train_data = WikiQA(word2vec=word2vec)
     else:
@@ -22,8 +23,8 @@ def train(lr, w, l2_reg, epoch, batch_size, model_type, num_layers, data_type, w
     print("training max len:", train_data.max_len)
     print("=" * 50)
 
-    model = ABCNN(s=train_data.max_len, w=w, l2_reg=l2_reg, model_type=model_type,
-                  num_features=train_data.num_features, num_classes=num_classes, num_layers=num_layers)
+    model = ABCNN(sent=train_data.max_len, f_width=width, l2_reg=l2_reg, model_type=model_type,
+                  num_features=train_data.num_features, num_classes=num_classes, num_layers_cnn=num_layers)
 
     optimizer = tf.train.AdagradOptimizer(lr, name="optimizer").minimize(model.cost)
 
@@ -37,7 +38,7 @@ def train(lr, w, l2_reg, epoch, batch_size, model_type, num_layers, data_type, w
     saver = tf.train.Saver(max_to_keep=100)
 
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
-        train_summary_writer = tf.summary.FileWriter("C:/tf_logs/train", sess.graph)
+        train_summary_writer = tf.summary.FileWriter("./tf_logs/train", sess.graph)
 
         sess.run(init)
 
@@ -47,16 +48,13 @@ def train(lr, w, l2_reg, epoch, batch_size, model_type, num_layers, data_type, w
 
             train_data.reset_index()
             i = 0
-
             LR = linear_model.LogisticRegression()
             SVM = svm.LinearSVC()
             clf_features = []
 
             while train_data.is_available():
                 i += 1
-
                 batch_x1, batch_x2, batch_y, batch_features = train_data.next_batch(batch_size=batch_size)
-
                 merged, _, c, features = sess.run([model.merged, optimizer, model.cost, model.output_features],
                                                   feed_dict={model.x1: batch_x1,
                                                              model.x2: batch_x2,
@@ -89,41 +87,44 @@ def train(lr, w, l2_reg, epoch, batch_size, model_type, num_layers, data_type, w
 
 
 if __name__ == "__main__":
-
-    # Paramters
-    # --lr: learning rate
-    # --ws: window_size
-    # --l2_reg: l2_reg modifier
-    # --epoch: epoch
-    # --batch_size: batch size
-    # --model_type: model type
-    # --num_layers: number of convolution layers
-    # --data_type: MSRP or WikiQA data
-
-    # default parameters
+    """
+     参数解释
+        --lr:学习率
+        --ws: 窗口大小
+        --l2_reg: l2_reg 
+        --epoch: 训练批次
+        --batch_size: batch size
+        --model_type: 模型类型
+        --num_layers: 卷积层数量
+        --data_type: MSRP or WikiQA data
+    """
+    # 默认的模型超参数
     params = {
-        "lr": 0.08,
-        "ws": 4,
+        "lr": 0.08,  # 学习率为0.08
+        "ws": 4,  # 窗口大小为4
         "l2_reg": 0.0004,
-        "epoch": 50,
-        "batch_size": 64,
-        "model_type": "BCNN",
-        "num_layers": 2,
+        "epoch": 50,  # 迭代50次
+        "batch_size": 64,  # 批大小为64
+        "model_type": "BCNN",  # BaseLine Model
+        "num_layers": 2,  # 2个卷积层
         "data_type": "WikiQA",
         "word2vec": Word2Vec()
     }
 
     print("=" * 50)
-    print("Parameters:")
+    print("***************Parameters:******************")
     for k in sorted(params.keys()):
         print(k, ":", params[k])
 
+    # 带参数启动 启动参数如下，否则按默认参数训练
+    # (training): python train.py - -lr = 0.08 - -ws = 4 - -l2_reg = 0.0004 - -epoch = 20 - -batch_size = 64 -
+    # -model_type = BCNN - -num_layers = 2 - -data_type = WikiQA
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             k = arg.split("=")[0][2:]
             v = arg.split("=")[1]
             params[k] = v
 
-    train(lr=float(params["lr"]), w=int(params["ws"]), l2_reg=float(params["l2_reg"]), epoch=int(params["epoch"]),
+    train(lr=float(params["lr"]), width=int(params["ws"]), l2_reg=float(params["l2_reg"]), epoch=int(params["epoch"]),
           batch_size=int(params["batch_size"]), model_type=params["model_type"], num_layers=int(params["num_layers"]),
           data_type=params["data_type"], word2vec=params["word2vec"])

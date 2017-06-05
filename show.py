@@ -19,4 +19,3 @@ plt.plot(np.arange(1, len(MAPs)+1, 1), MAPs, 'r')
 plt.plot(np.arange(1, len(MAPs)+1, 1), MRRs, 'b')
 plt.legend(["MAP", "MRR"])
 plt.show()
-

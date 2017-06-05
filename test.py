@@ -16,8 +16,8 @@ def test(w, l2_reg, epoch, max_len, model_type, num_layers, data_type, classifie
 
     test_data.open_file(mode="test")
 
-    model = ABCNN(s=max_len, w=w, l2_reg=l2_reg, model_type=model_type,
-                  num_features=test_data.num_features, num_classes=num_classes, num_layers=num_layers)
+    model = ABCNN(sent=max_len, f_width=w, l2_reg=l2_reg, model_type=model_type,
+                  num_features=test_data.num_features, num_classes=num_classes, num_layers_cnn=num_layers)
 
     model_path = build_path("./models/", data_type, model_type, num_layers)
     MAPs, MRRs = [], []
@@ -108,37 +108,38 @@ def test(w, l2_reg, epoch, max_len, model_type, num_layers, data_type, classifie
 
 
 if __name__ == "__main__":
+    """
+     参数解释
+    --ws: 卷积窗口大小
+    --l2_reg: l2_reg modifier
+    --epoch: 训练批次
+    --max_len: 句子最大长度
+    --model_type: model type
+    --num_layers: 卷积层个数
+    --data_type: MSRP or WikiQA data
+    --classifier:分类器(LR, SVM)
+    """
 
-    # Paramters
-    # --ws: window_size
-    # --l2_reg: l2_reg modifier
-    # --epoch: epoch
-    # --max_len: max sentence length
-    # --model_type: model type
-    # --num_layers: number of convolution layers
-    # --data_type: MSRP or WikiQA data
-    # --classifier: Final layout classifier(model, LR, SVM)
+# 默认参数
+params = {
+    "ws": 4,
+    "l2_reg": 0.0004,
+    "epoch": 50,
+    "max_len": 40,
+    "model_type": "BCNN",
+    "num_layers": 2,
+    "data_type": "WikiQA",
+    "classifier": "LR",
+    "word2vec": Word2Vec()
+}
 
-    # default parameters
-    params = {
-        "ws": 4,
-        "l2_reg": 0.0004,
-        "epoch": 50,
-        "max_len": 40,
-        "model_type": "BCNN",
-        "num_layers": 2,
-        "data_type": "WikiQA",
-        "classifier": "LR",
-        "word2vec": Word2Vec()
-    }
+if len(sys.argv) > 1:
+    for arg in sys.argv[1:]:
+        k = arg.split("=")[0][2:]
+        v = arg.split("=")[1]
+        params[k] = v
 
-    if len(sys.argv) > 1:
-        for arg in sys.argv[1:]:
-            k = arg.split("=")[0][2:]
-            v = arg.split("=")[1]
-            params[k] = v
-
-    test(w=int(params["ws"]), l2_reg=float(params["l2_reg"]), epoch=int(params["epoch"]),
-         max_len=int(params["max_len"]), model_type=params["model_type"],
-         num_layers=int(params["num_layers"]), data_type=params["data_type"],
-         classifier=params["classifier"], word2vec=params["word2vec"])
+test(w=int(params["ws"]), l2_reg=float(params["l2_reg"]), epoch=int(params["epoch"]),
+     max_len=int(params["max_len"]), model_type=params["model_type"],
+     num_layers=int(params["num_layers"]), data_type=params["data_type"],
+     classifier=params["classifier"], word2vec=params["word2vec"])
